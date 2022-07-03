@@ -1,20 +1,29 @@
 <template>
-  <div class="dropdown dropdown_opened">
-    <button type="button" class="dropdown__toggle dropdown__toggle_icon">
-      <ui-icon icon="tv" class="dropdown__icon" />
-      <span>Title</span>
+  <div @click="opened = !opened" class="dropdown" :class="{ 'dropdown_opened': opened }">
+    <button type="button" class="dropdown__toggle"
+            :class="{ 'dropdown__toggle_icon': hasIcons }">
+      <ui-icon v-if="selectedIcon" :icon="selectedIcon" class="dropdown__icon" />
+      <span>{{ selectedText || title }}</span>
     </button>
 
-    <div class="dropdown__menu" role="listbox">
-      <button class="dropdown__item dropdown__item_icon" role="option" type="button">
-        <ui-icon icon="tv" class="dropdown__icon" />
-        Option 1
-      </button>
-      <button class="dropdown__item dropdown__item_icon" role="option" type="button">
-        <ui-icon icon="tv" class="dropdown__icon" />
-        Option 2
+    <div v-show="opened" class="dropdown__menu" role="listbox">
+      <button v-for="{ value, text, icon } of options" :key="value"
+              @click.stop="select(value)"
+              class="dropdown__item"
+              :class="{ 'dropdown__item_icon': hasIcons }"
+              role="option"
+              type="button">
+        <ui-icon v-if="icon" :icon="icon" class="dropdown__icon" />
+        {{ text }}
       </button>
     </div>
+
+    <select :value="modelValue"
+            @change="select($event.target.value)"
+            v-show="false">
+      <option v-for="{ value, text } of options" :key="value"
+              :value="value" v-text="text"/>
+    </select>
   </div>
 </template>
 
@@ -25,6 +34,53 @@ export default {
   name: 'UiDropdown',
 
   components: { UiIcon },
+
+  props: {
+    title: {
+      type: String,
+      required: true,
+    },
+    options: {
+      type: Array,
+      required: true,
+    },
+    modelValue: String,
+  },
+
+  data() {
+    return {
+      opened: false,
+    };
+  },
+
+  computed: {
+    mapOptions() {
+      return Object.assign({}, ...this.options.map(item => ({ [item.value]: item.text })));
+    },
+
+    hasIcons() {
+      return !!this.options.find(item => !!item.icon);
+    },
+
+    selectedItem() {
+      return this.options.find(item => item.value === this.modelValue);
+    },
+
+    selectedIcon() {
+      return this.selectedItem?.icon;
+    },
+
+    selectedText() {
+      return this.selectedItem?.text;
+    },
+  },
+
+  methods: {
+    select(value) {
+      this.$emit('update:modelValue', value);
+      this.opened = false;
+    },
+  },
 };
 </script>
 
