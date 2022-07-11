@@ -1,8 +1,15 @@
 <template>
   <div class="image-uploader">
-    <label class="image-uploader__preview image-uploader__preview-loading" style="--bg-url: url('/link.jpeg')">
-      <span class="image-uploader__text">Загрузить изображение</span>
-      <input type="file" accept="image/*" class="image-uploader__input" />
+    <label class="image-uploader__preview"
+           :class="{ 'image-uploader__preview-loading': loading }"
+           :style="`--bg-url: url('${image}')`">
+      <span class="image-uploader__text">{{ text }}</span>
+      <input ref="input"
+             type="file" accept="image/*"
+             @change="upload"
+             @click="remove"
+             v-bind="$attrs"
+             class="image-uploader__input" />
     </label>
   </div>
 </template>
@@ -10,6 +17,62 @@
 <script>
 export default {
   name: 'UiImageUploader',
+
+  inheritAttrs: false,
+
+  props: {
+    preview: String,
+    uploader: Function,
+  },
+
+  emits: ['select', 'upload', 'remove', 'error'],
+
+  data() {
+    return {
+      loading: false,
+      image: this.preview,
+    }
+  },
+
+  computed: {
+    text() {
+      if (this.image) return "Удалить изображение";
+      if (this.loading) return "Загрузка...";
+      return "Загрузить изображение";
+    },
+  },
+
+  methods: {
+    async upload() {
+      const file = this.$refs.input.files[0];
+      this.$refs.input.value = '';
+
+      this.loading = true;
+      try {
+        if (this.uploader) {
+          const data = await this.uploader(file);
+          this.$emit('upload', data);
+        }
+        this.$emit('select', file);
+        this.image = URL.createObjectURL(file);
+      } catch (e) {
+        this.$emit('error', e);
+      } finally {
+        this.loading = false;
+      }
+    },
+
+    remove(e) {
+      if (!this.image) return;
+
+      e.preventDefault();
+
+      this.$refs.input.value = '';
+      this.image = null;
+
+      this.$emit('remove');
+    },
+  },
 };
 </script>
 
