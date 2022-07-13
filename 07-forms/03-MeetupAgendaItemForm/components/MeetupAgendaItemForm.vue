@@ -1,37 +1,51 @@
 <template>
   <fieldset class="agenda-item-form">
-    <button type="button" class="agenda-item-form__remove-button">
+    <button @click="$emit('remove')" type="button" class="agenda-item-form__remove-button">
       <ui-icon icon="trash" />
     </button>
 
     <ui-form-group>
-      <ui-dropdown title="Тип" :options="$options.agendaItemTypeOptions" name="type" />
+      <ui-dropdown title="Тип"
+                   v-model="localAgendaItem.type"
+                   :options="$options.agendaItemTypeOptions"
+                   name="type" />
     </ui-form-group>
 
     <div class="agenda-item-form__row">
       <div class="agenda-item-form__col">
         <ui-form-group label="Начало">
-          <ui-input type="time" placeholder="00:00" name="startsAt" />
+          <ui-input v-model="startsAt"
+                    type="time" placeholder="00:00" name="startsAt" />
         </ui-form-group>
       </div>
       <div class="agenda-item-form__col">
         <ui-form-group label="Окончание">
-          <ui-input type="time" placeholder="00:00" name="endsAt" />
+          <ui-input v-model="localAgendaItem.endsAt"
+                    type="time" placeholder="00:00" name="endsAt" />
         </ui-form-group>
       </div>
     </div>
 
-    <ui-form-group label="Тема">
-      <ui-input name="title" />
+    <ui-form-group :label="titleLabel">
+      <ui-input name="title"
+                v-model.lazy="localAgendaItem.title" />
     </ui-form-group>
-    <ui-form-group label="Докладчик">
-      <ui-input name="speaker" />
+    <ui-form-group v-if="['talk'].includes(type)"
+                   label="Докладчик">
+      <ui-input name="speaker"
+                v-model.lazy="localAgendaItem.speaker" />
     </ui-form-group>
-    <ui-form-group label="Описание">
-      <ui-input multiline name="description" />
+    <ui-form-group v-if="['talk', 'other'].includes(type)"
+                   label="Описание">
+      <ui-input multiline name="description"
+                v-model.lazy="localAgendaItem.description" />
     </ui-form-group>
-    <ui-form-group label="Язык">
-      <ui-dropdown title="Язык" :options="$options.talkLanguageOptions" name="language" />
+    <ui-form-group v-if="['talk'].includes(type)"
+                   label="Язык">
+      <ui-dropdown title="Язык"
+                   v-model="localAgendaItem.language"
+                   :options="$options.talkLanguageOptions"
+                   name="language" />
     </ui-form-group>
   </fieldset>
 </template>
@@ -41,6 +55,7 @@ import UiIcon from './UiIcon';
 import UiFormGroup from './UiFormGroup';
 import UiInput from './UiInput';
 import UiDropdown from './UiDropdown';
+import dayjs from 'dayjs';
 
 const agendaItemTypeIcons = {
   registration: 'key',
@@ -88,6 +103,57 @@ export default {
     agendaItem: {
       type: Object,
       required: true,
+    },
+  },
+
+  emits: ['update:agendaItem', 'remove'],
+
+  data() {
+    return {
+      localAgendaItem: { ...this.agendaItem },
+    }
+  },
+
+  watch: {
+    localAgendaItem: {
+      handler() {
+        this.$emit('update:agendaItem', this.localAgendaItem);
+      },
+      deep: true,
+    },
+  },
+
+  computed: {
+    type() {
+      return this.localAgendaItem.type;
+    },
+
+    startsAt: {
+      get() {
+        return this.localAgendaItem.startsAt;
+      },
+      set(value) {
+        const now = dayjs();
+        const getDate = (at) => {
+          const [hour, minute] = at.split(':');
+          return now.clone().hour(hour).minute(minute);
+        };
+
+        const start = getDate(this.localAgendaItem.startsAt);
+        const plus = getDate(value);
+        const end = getDate(this.localAgendaItem.endsAt);
+
+        this.localAgendaItem.startsAt = value;
+        this.localAgendaItem.endsAt = dayjs(end + (plus - start)).format('HH:mm');
+      }
+    },
+
+    titleLabel() {
+      const type = this.type;
+
+      if (type === 'talk') return 'Тема';
+      if (type === 'other') return 'Заголовок';
+      return 'Нестандартный текст (необязательно)';
     },
   },
 };
