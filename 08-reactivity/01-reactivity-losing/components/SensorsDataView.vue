@@ -42,7 +42,9 @@ export default {
     },
 
     setData(sensors) {
-      this.sensors = sensors;
+      this.sensors = Object.assign({},
+        ...Object.entries(sensors).map(([key, value]) => ({ [key]: { ...value } }))
+      );
     },
   },
 };
