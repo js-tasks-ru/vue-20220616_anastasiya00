@@ -1,6 +1,6 @@
 <template>
   <div class="pagination-container">
-    <!-- Контент страницы -->
+    <slot v-for="item in limitedItems" v-bind="{ item }" />
   </div>
 </template>
 
@@ -24,6 +24,17 @@ export default {
       required: true,
     },
   },
+
+  computed: {
+    limitedItems() {
+      const { page, perPage } = this;
+
+      const start = (page - 1) * perPage;
+      const end = start + perPage;
+
+      return this.items.slice(start, end);
+    },
+  }
 };
 </script>
 
